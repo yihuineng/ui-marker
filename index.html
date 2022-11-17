@@ -6,15 +6,15 @@
 </head>
 <body onload="onBodyLoad()">
 <div id="memo">
-    <span>UI Marker: support cmd+x(cut)、cmd+c(copy)、cmd+v(paste)、cmd+backspace(delete)</span>
+    <span>UI Marker: support cmd+x(cut)、cmd+c(copy)、cmd+v(paste)、cmd+backspace(delete), Don't use 'nodes' and 'image' as label name.</span>
 </div>
 <div id="ctrl">
     <div style="align-items: center; display: flex">
         <label for="jsonData">
         <textarea
                 id="jsonData"
-                rows="2"
-                cols="60"
+                rows="10"
+                cols="70"
                 placeholder="JsonData"
         ></textarea></label>
         <button class="btn" data-clipboard-target="#jsonData" style="margin-left: 20px">CopyData</button>
@@ -41,18 +41,14 @@
     let graph;
     let jsonData = {
         "PageA": {
-            "page": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page1.jpg",
-            "labels": {
-                "btn1": "100,200",
-                "btn2": "200,200"
-            },
+            "image": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page1.jpg",
+            "btn1": "100,200",
+            "btn2": "200,200"
         },
         "PageB": {
-            "page": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page2.jpg",
-            "labels": {
-                "btn3": "100,200",
-                "btn4": "300,200"
-            },
+            "image": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page2.jpg",
+            "btn3": "100,200",
+            "btn4": "300,200"
         }
     };
     let currentPage = 'PageA';
@@ -183,11 +179,10 @@
         const pageKeys = Object.keys(jsonData);
         // labels -> nodes
         for (const pageKey in jsonData) {
-            const { labels } = jsonData[pageKey];
-            jsonData[pageKey].nodes = getNodesByLabels(labels);
+            jsonData[pageKey].nodes = getNodesByLabels(jsonData[pageKey]);
         }
         await recreateGraph({
-            backgroundImage: jsonData[pageKeys[0]].page,
+            backgroundImage: jsonData[pageKeys[0]].image,
             nodes: jsonData[pageKeys[0]].nodes,
         });
         // 更新下拉选项，并选中第一个
@@ -224,8 +219,12 @@
             labels[label] = `${cell.position.x},${cell.position.y}`;
             nodes.push(newNode(label, cell.position.x, cell.position.y));
         });
-        jsonData[currentPage].nodes = nodes;
-        jsonData[currentPage].labels = labels;
+        // 更新nodes和labels
+        jsonData[currentPage] = {
+            image: jsonData[currentPage].image,
+            nodes,
+            ...labels
+        };
     };
 
     const onPageChange = async () => {
@@ -235,7 +234,7 @@
         const selPage = select.options[idx].value;
         console.log('onPageChange', selPage);
         await recreateGraph({
-            backgroundImage: jsonData[selPage].page,
+            backgroundImage: jsonData[selPage].image,
             nodes: jsonData[selPage].nodes,
         });
         currentPage = selPage;
@@ -244,8 +243,10 @@
     const getNodesByLabels = (labels) => {
         const nodes = [];
         for (const labelKey in labels) {
-            const labelPos = labels[labelKey].split(',');
-            nodes.push(newNode(labelKey, Number.parseInt(labelPos[0]), Number.parseInt(labelPos[1])));
+            if (labelKey !== 'image' && labelKey !== 'nodes') {
+                const labelPos = labels[labelKey].split(',');
+                nodes.push(newNode(labelKey, Number.parseInt(labelPos[0]), Number.parseInt(labelPos[1])));
+            }
         }
         return nodes;
     };
@@ -259,10 +260,10 @@
         // init nodes
         const defPageKeys = Object.keys(jsonData);
         for (const key in jsonData) {
-            jsonData[key].nodes = getNodesByLabels(jsonData[key].labels);
+            jsonData[key].nodes = getNodesByLabels(jsonData[key]);
         }
         recreateGraph({
-            backgroundImage: jsonData[defPageKeys[0]].page,
+            backgroundImage: jsonData[defPageKeys[0]].image,
             nodes: jsonData[defPageKeys[0]].nodes,
         });
     };
