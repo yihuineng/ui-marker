@@ -16,7 +16,8 @@
                 rows="10"
                 cols="70"
                 placeholder="JsonData"
-        ></textarea></label>
+        ></textarea>
+        </label>
         <button class="btn" data-clipboard-target="#jsonData" style="margin-left: 20px">CopyData</button>
     </div>
     <div style="margin-bottom: 10px">
@@ -175,17 +176,18 @@
 
     const importData = async () => {
         const jsonStr = document.getElementById("jsonData").value.trim();
-        jsonData = JSON.parse(jsonStr);
+        jsonData = JSON.parse(jsonStr.replaceAll(/'/g, '"'));
         const pageKeys = Object.keys(jsonData);
         // labels -> nodes
         for (const pageKey in jsonData) {
             jsonData[pageKey].nodes = getNodesByLabels(jsonData[pageKey]);
         }
+        currentPage = pageKeys[0];
         await recreateGraph({
-            backgroundImage: jsonData[pageKeys[0]].image,
-            nodes: jsonData[pageKeys[0]].nodes,
+            backgroundImage: jsonData[currentPage].image,
+            nodes: jsonData[currentPage].nodes,
         });
-        // 更新下拉选项，并选中第一个
+        // update select
         const select = document.getElementById("pageSelector");
         select.options.length = 0;
         pageKeys.forEach(k => {
@@ -193,6 +195,7 @@
         });
         select[0].selected = true;
     };
+
     const addNode = () => {
         graph.addNode(newNode());
     };
