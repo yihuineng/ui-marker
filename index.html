@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html" lang="zh">
+<head>
+    <title>UIMarker</title>
+    <meta charset="utf-8">
+</head>
+<body onload="onBodyLoad()">
+<div id="memo">
+    <span>UI Marker: support cmd+x(cut)、cmd+c(copy)、cmd+v(paste)、cmd+backspace(delete)</span>
+</div>
+<div id="ctrl">
+    <div style="align-items: center; display: flex">
+        <label for="jsonData">
+        <textarea
+                id="jsonData"
+                rows="2"
+                cols="60"
+                placeholder="JsonData"
+        ></textarea></label>
+        <button class="btn" data-clipboard-target="#jsonData" style="margin-left: 20px">CopyData</button>
+    </div>
+    <div style="margin-bottom: 10px">
+        <button onclick="importData()">ImportData</button>
+        <button onclick="saveAllPageData()">SaveData</button>
+        <button onclick="addNode()">AddPosition</button>
+        <label>
+            Switch Page
+            <select id="pageSelector" onchange="onPageChange()" style="width: 200px">
+                <option value="PageA">PageA</option>
+                <option value="PageB">PageB</option>
+            </select>
+        </label>
+    </div>
+</div>
+<div id="container" style="border: 1px solid"></div>
+</body>
+
+<script src="./lib/x6.js"></script>
+<script src="./lib/clipboard.min.js"></script>
+<script>
+    let graph;
+    let jsonData = {
+        "PageA": {
+            "page": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page1.jpg",
+            "labels": {
+                "btn1": "100,200",
+                "btn2": "200,200"
+            },
+        },
+        "PageB": {
+            "page": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page2.jpg",
+            "labels": {
+                "btn3": "100,200",
+                "btn4": "300,200"
+            },
+        }
+    };
+    let currentPage = 'PageA';
+
+    const getImgSize = async (url) => {
+        return new Promise(resolve => {
+            // 获取图片宽高
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                resolve({ width: img.width / 2, height: img.height / 2 });
+            };
+        });
+    };
+
+    const newNode = (label = 'new-label', x = 50, y = 50) => {
+        return {
+            shape: 'polygon',
+            x,
+            y,
+            width: 80,
+            height: 40,
+            label,
+            attrs: {
+                body: {
+                    fill: 'red',
+                    stroke: 'red',
+                    points: '0,0 5,0 0,0 0,5',
+                },
+            },
+        };
+    };
+
+    const recreateGraph = async (opts) => {
+        const {
+            backgroundImage = 'https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page1.jpg',
+            nodes = [],
+        } = opts;
+        const imgSize = await getImgSize(backgroundImage);
+        const width = opts.width || imgSize.width;
+        const height = opts.height || imgSize.height;
+        console.log(width, height);
+        if (graph) {
+            graph.dispose();
+            graph = null;
+        }
+        graph = new X6.Graph({
+            container: document.getElementById('container'),
+            clipboard: true,
+            keyboard: {
+                enabled: true,
+                format(key) {
+                    return key
+                        .replace(/\s/g, '')
+                        .replace('cmd', 'command');
+                },
+            },
+            selecting: {
+                enabled: true,
+                showNodeSelectionBox: true,
+            },
+            width,
+            height,
+            background: {
+                image: backgroundImage,
+                opacity: 0.5,
+                size: {
+                    width,
+                    height,
+                },
+            },
+            grid: {
+                size: 5,
+                visible: false,
+            },
+        });
+        graph.bindKey('cmd+c', () => {
+            const cells = graph.getSelectedCells()
+            if (cells.length) {
+                graph.copy(cells);
+            }
+            return false;
+        });
+        graph.bindKey('cmd+v', () => {
+            if (!graph.isClipboardEmpty()) {
+                const cells = graph.paste({ offset: 32 });
+                graph.cleanSelection();
+                graph.select(cells);
+            }
+            return false;
+        });
+        graph.bindKey('cmd+x', () => {
+            const cells = graph.getSelectedCells()
+            if (cells.length) {
+                graph.cut(cells);
+            }
+            return false;
+        });
+        graph.bindKey('cmd+backspace', () => {
+            const cells = graph.getSelectedCells()
+            if (cells.length) {
+                cells.forEach(cell => {
+                    cell.remove();
+                });
+            }
+            return false;
+        });
+        graph.on('cell:dblclick', ({ cell, e }) => {
+            const isNode = cell.isNode()
+            const name = cell.isNode() ? 'node-editor' : 'edge-editor'
+            cell.removeTool(name)
+            cell.addTools({
+                name,
+                args: {
+                    event: e,
+                    attrs: {
+                        backgroundColor: isNode ? '#EFF4FF' : '#FFF',
+                    },
+                },
+            })
+        });
+        graph.fromJSON({ nodes });
+    };
+
+    const importData = async () => {
+        const jsonStr = document.getElementById("jsonData").value.trim();
+        jsonData = JSON.parse(jsonStr);
+        const pageKeys = Object.keys(jsonData);
+        // labels -> nodes
+        for (const pageKey in jsonData) {
+            const { labels } = jsonData[pageKey];
+            jsonData[pageKey].nodes = getNodesByLabels(labels);
+        }
+        await recreateGraph({
+            backgroundImage: jsonData[pageKeys[0]].page,
+            nodes: jsonData[pageKeys[0]].nodes,
+        });
+        // 更新下拉选项，并选中第一个
+        const select = document.getElementById("pageSelector");
+        select.options.length = 0;
+        pageKeys.forEach(k => {
+            select.options.add(new Option(k, k));
+        });
+        select[0].selected = true;
+    };
+    const addNode = () => {
+        graph.addNode(newNode());
+    };
+
+    const saveAllPageData = () => {
+        saveCurrentPage();
+        const resultJson = { ...jsonData };
+        for (const key in resultJson) {
+            delete resultJson[key].nodes;
+        }
+        console.log('resultJson', resultJson);
+        document.getElementById("jsonData").value = JSON.stringify(resultJson, null, 2);
+    };
+    // save current page data: nodes labels
+    const saveCurrentPage = () => {
+        if (!graph) {
+            return;
+        }
+        const { cells = [] } = graph.toJSON();
+        const nodes = [];
+        const labels = {};
+        cells.forEach(cell => {
+            const label = cell.attrs.text.text.trim();
+            labels[label] = `${cell.position.x},${cell.position.y}`;
+            nodes.push(newNode(label, cell.position.x, cell.position.y));
+        });
+        jsonData[currentPage].nodes = nodes;
+        jsonData[currentPage].labels = labels;
+    };
+
+    const onPageChange = async () => {
+        saveCurrentPage();
+        const select = document.getElementById("pageSelector");
+        const idx = select.selectedIndex;
+        const selPage = select.options[idx].value;
+        console.log('onPageChange', selPage);
+        await recreateGraph({
+            backgroundImage: jsonData[selPage].page,
+            nodes: jsonData[selPage].nodes,
+        });
+        currentPage = selPage;
+    };
+
+    const getNodesByLabels = (labels) => {
+        const nodes = [];
+        for (const labelKey in labels) {
+            const labelPos = labels[labelKey].split(',');
+            nodes.push(newNode(labelKey, Number.parseInt(labelPos[0]), Number.parseInt(labelPos[1])));
+        }
+        return nodes;
+    };
+
+    const onBodyLoad = () => {
+        console.log('onload');
+        const clipboard = new ClipboardJS('.btn');
+        clipboard.on('success', () => {
+            alert('copy success！');
+        });
+        // init nodes
+        const defPageKeys = Object.keys(jsonData);
+        for (const key in jsonData) {
+            jsonData[key].nodes = getNodesByLabels(jsonData[key].labels);
+        }
+        recreateGraph({
+            backgroundImage: jsonData[defPageKeys[0]].page,
+            nodes: jsonData[defPageKeys[0]].nodes,
+        });
+    };
+</script>
+</html>
