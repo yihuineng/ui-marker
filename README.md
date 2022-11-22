@@ -1,5 +1,5 @@
 ## [UI Marker](https://yihuineng.github.io/ui-marker)
-### help you manage UI positions easily.
+### Help manage your UI positions easily.
 
 ![image](resource/demo.jpg)
 
@@ -9,21 +9,18 @@
 ### local
 - open index.html in browser.
 - import JsonData like this
+
 ```json
 {
-  "page1": {
-    "page": "img_url1",
-    "labels": {
-      "btn1": "100,200",
-      "btn2": "200,200"
-    }
+  "PageA": {
+     "image": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page1.jpg",
+     "btn1": "100,200",
+     "btn2": "200,200"
   },
-  "page2": {
-    "page": "img_url1",
-    "labels": {
-      "btn3": "100,200",
-      "but4": "300,200"
-    }
+  "PageB": {
+     "image": "https://cdn.jsdelivr.net/gh/yihuineng/images@master/uimarker/page2.jpg",
+     "btn3": "100,200",
+     "btn4": "300,200"
   }
 }
 ```
