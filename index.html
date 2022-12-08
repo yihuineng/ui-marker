@@ -176,7 +176,7 @@
 
     const importData = async () => {
         const jsonStr = document.getElementById("jsonData").value.trim();
-        jsonData = JSON.parse(jsonStr.replaceAll(/'/g, '"'));
+        jsonData = eval("(" + jsonStr + ")");
         const pageKeys = Object.keys(jsonData);
         // labels -> nodes
         for (const pageKey in jsonData) {
