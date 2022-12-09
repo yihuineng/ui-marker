@@ -30,6 +30,7 @@
                 <option value="PageA">PageA</option>
                 <option value="PageB">PageB</option>
             </select>
+            <span id="imageSize">ImageSize: width * height</span>
         </label>
     </div>
 </div>
@@ -39,6 +40,7 @@
 <script src="https://cdn.jsdelivr.net/gh/yihuineng/ui-marker@master/lib/x6.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/yihuineng/ui-marker@master/lib/clipboard.min.js"></script>
 <script>
+    let randomStr = `${Math.random()}`;
     let graph;
     let jsonData = {
         "PageA": {
@@ -92,6 +94,7 @@
         const width = opts.width || imgSize.width;
         const height = opts.height || imgSize.height;
         console.log(width, height);
+        document.getElementById("imageSize").innerText = `ImageSize: ${width} * ${height}`;
         if (graph) {
             graph.dispose();
             graph = null;
@@ -175,6 +178,8 @@
     };
 
     const importData = async () => {
+        // fresh image cache
+        randomStr = `${Math.random()}`;
         const jsonStr = document.getElementById("jsonData").value.trim();
         jsonData = eval("(" + jsonStr + ")");
         const pageKeys = Object.keys(jsonData);
@@ -237,7 +242,7 @@
         const selPage = select.options[idx].value;
         console.log('onPageChange', selPage);
         await recreateGraph({
-            backgroundImage: jsonData[selPage].image,
+            backgroundImage: jsonData[selPage].image + "?ran=" + randomStr,
             nodes: jsonData[selPage].nodes,
         });
         currentPage = selPage;
