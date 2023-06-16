@@ -265,7 +265,15 @@
         clipboard.on('success', () => {
             alert('copy success！');
         });
-        // init nodes
+        // 尝试通过url传参初始化
+        const urlParams = new URLSearchParams(window.location.search);
+        const jsonText = urlParams.get('jsonText');
+        if (jsonText) {
+            document.getElementById("jsonData").value = jsonText;
+            importData();
+            return;
+        }
+        // 默认数据初始化
         const defPageKeys = Object.keys(jsonData);
         for (const key in jsonData) {
             jsonData[key].nodes = getNodesByLabels(jsonData[key]);

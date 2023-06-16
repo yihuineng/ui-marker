@@ -1,0 +1,44 @@
+{
+  "name": "ui-marker",
+  "version": "0.0.1",
+  "description": "Help manage your UI positions easily.",
+  "keywords": [
+    "position",
+    "ui"
+  ],
+  "main": "dist/index",
+  "typings": "dist/index.d.ts",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "commander": "^7.2.0",
+    "power-assert": "^1.6.1",
+    "shelljs": "^0.8.5"
+  },
+  "devDependencies": {
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^16.11.12",
+    "eslint-config-egg": "^7.0.0",
+    "mocha": "^8.0.1",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.5.0",
+    "eslint": "5",
+    "eslint-plugin-babel": "^5.2.0",
+    "nyc": "^15.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:yihuineng/ui-marker.git"
+  },
+  "author": "yihuineng",
+  "bin": {
+    "ui-marker": "./dist/bin/demo-bin.js"
+  },
+  "scripts": {
+    "lint": "eslint . --ext .ts,js",
+    "test": "mocha 'test/**/*.test.ts' --require ts-node/register --require ./test/cfg/hooks.ts --recursive",
+    "test:cov": "nyc --reporter=lcov --reporter=text npm run test"
+  },
+  "files": [
+    "dist"
+  ]
+}
